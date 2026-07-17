@@ -8,7 +8,26 @@ const REQUIRED_FIELDS = ["title", "author", "category", "rating", "text", "revie
 const VALID_CATEGORIES = new Set(["codificacao", "psicografia", "romance", "estudo"]);
 const MAX_LENGTHS = { title: 200, author: 200, reviewer: 120, text: 4000 };
 
+// Domínio do frontend que pode chamar esta API (defina ALLOWED_ORIGIN nas
+// variáveis de ambiente da Vercel, ex.: https://alem-das-paginas.vercel.app).
+// Sem essa variável configurada, libera qualquer origem ("*") para não
+// travar em desenvolvimento — troque para o domínio real em produção.
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || "*";
+
+function setCorsHeaders(res) {
+  res.setHeader("Access-Control-Allow-Origin", ALLOWED_ORIGIN);
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+}
+
 export default async function handler(req, res) {
+  setCorsHeaders(res);
+
+  // Requisição de pré-checagem CORS que o navegador envia antes do POST
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
   try {
     if (req.method === "GET") {
       const rows = await sql`
@@ -58,11 +77,10 @@ export default async function handler(req, res) {
       return res.status(201).json(row);
     }
 
-    res.setHeader("Allow", "GET, POST");
+    res.setHeader("Allow", "GET, POST, OPTIONS");
     return res.status(405).json({ error: `Método ${req.method} não permitido.` });
   } catch (err) {
     console.error("Erro na API de resenhas:", err);
     return res.status(500).json({ error: "Erro interno ao acessar o banco de dados." });
   }
 }
-
